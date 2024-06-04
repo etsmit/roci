@@ -1,0 +1,8 @@
+numpy
+blimpy
+astropy
+numba
+matplotlib
+scipy
+statsmodels
+jupyter

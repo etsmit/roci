@@ -128,17 +128,50 @@ def master_SK_EST(data,SK_M,m,n,n=1,d=1):
 
 	
 
+def averager(data,m)
+    """
+    averages data for IQRM
+    """
+    step1 = np.reshape(data,(data.shape[0],-1,m))
+    step2 = np.nanmean(step1,axis=2)
+    return step2             
+                  
+
+def stdever(data,m):
+    """
+    standard deviation of data
+    """
+    step1 = np.reshape(data,(data.shape[0],-1,m))
+    step2 = np.nanstd(step1,axis=2)
+    return step2
+
+
+def iqrm_power(data, radius, threshold):
+    m = 512 # constant
+    avg_pre = averager(np.abs(data[:,:,0])**2,m)
+    data = np.abs(data[:,:,0])**2
+    for i in tqdm(range(data.shape[2])): # iterate through polarizations
+        for j in range(data.shape[0]): # iterate through channels
+            flag_chunk[j,:,i] = iqrm.iqrm_mask(data[j,:,i], radius = radius, threshold = threshold)[0]
+    
+    avg_post = 
+    return flag_chunk, avg_pre, avg_
 
 
 
+def iqrm_std(data, radius, threshold, breakdown):
+    """
+    breakdown must be a factor of the time shape data[1].shape()
+    """
+    m = 512 # constant
+    avg_pre = averager(np.abs(data[:,:,0])**2,m)
+    data = stdever(np.abs(data[:,:,0])**2, breakdown) # make it a stdev
+    for i in tqdm(range(data.shape[2])): # iterate through polarizations
+        for j in range(data.shape[0]): # iterate through channels
+            flag_chunk[j,:,i] = iqrm.iqrm_mask(data[j,:,i], radius = radius, threshold = threshold)[0]
 
-
-
-
-
-
-
-
+    avg_post = 
+    return flag_chunk, avg_pre, avg_
 
 
 

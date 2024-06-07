@@ -111,7 +111,7 @@ parser.add_argument('-IQRM_threshold',dest='IQRM_threshold',type=float,required=
 #don't forget to parse each parameter and assign to a variable below
 """
 """
-parser.add_argument('-IQRM_datatype',dest='IQRM_datatype',type=str,required=False,default='avg',help='String. Determines the type of data that is input into the IQRM function. Default 'avg'.')
+parser.add_argument('-IQRM_datatype',dest='IQRM_datatype',type=str,required=False,default='power',help='String. Determines the type of data that is input into the IQRM function. Default 'power'.')
 """
 """
 parser.add_argument('-IQRM_breakdown',dest='IQRM_breakdown',type=int,required=False,default=512,help='Integer. Required if using the standard deviation of the data as an input to IQRM. Determines the breakdown of the groups when calculating the stdev. Default '512'.')
@@ -150,6 +150,10 @@ else:
 npybase = out_dir+'npy_results/'+infile[len(in_dir):-4]
 
 
+avg_pre_filename = f"{npybase}_avg_pre_{IDstr}_{outfile_pattern}_{cust}.npy"
+avg_post_filename = f"{npybase}_avg_post_{IDstr}_{outfile_pattern}_{cust}.npy"
+
+
 flags_filename = f"{npybase}_flags_{IDstr}_{outfile_pattern}_{cust}.npy"
 
 #And then any one-off calculations at the beginning of the script
@@ -160,7 +164,7 @@ print('lagged distance: {}'.format(SK_p))
 
 #calculate % flagged
 print('Calculating flagged percent...')
-flagged = np.mean(mask)
+flagged = np.mean(flag_chunk)
 print('Flagged: '+str(flagged)+'%')
 
 #calculate ms thresholds
@@ -269,27 +273,20 @@ for block in range(numblocks//mb):
 	#======================================
 # is this indented?
 # average
-if IQRM_datatype == 'avg':
-    for i in tqdm(range(data.shape[2])): # iterate through polarizations
-        for j in range(data.shape[0]): # iterate through channels
-            flag_chunk[j,:,i] = iqrm.iqrm_mask(data[j,:,i], radius = IQRM_radius, threshold = IQRM_threshold)[0]
-    flag_chunk_avg = rfi.averager(np.abs(mask[:,:,0])**2,512)
+if IQRM_datatype == 'power':
+    flag_chunk, avg_pre, avg_post = rfi.iqrm_power(data, IQRM_radius, IQRM_threshold)
     
 # standard dev
 else if IQRM_datatype == 'std': 
-    for i in tqdm(range(data.shape[2])): # iterate through polarizations
-        for j in range(data.shape[0]): # iterate through channels
-            for l in range(int(data.shape[1]/breakdown)): # iterate through time, making diff arrays
-                flag_chunk[j,breakdown*l:breakdown*(l+1),i] = iqrm.iqrm_mask(data[j,breakdown*l:breakdown*(l+1),i], radius = IQRM_radius, threshold = IQRM_threshold)[0]
-    flag_chunk_std = rfi.stdever(np.abs(mask[:,:,0])**2,512)
+    flag_chunk, avg_pre, avg_post = rfi.iqrm_std(data, IQRM_radius, IQRM_threshold, IQRM_breakdown)
+
     
     
 else:
     return #throw some error?
-output_data[flag_chunk==1] = np.nan
-datatype_output = rfi.stdever(np.abs(output_data[:,:,0])**2,512)
-    
-    
+
+
+
 	#if you are making any intermediate numpy arrays (in addition to the flagging array), fill them here:
 
 	if (block==0):
@@ -357,8 +354,8 @@ print(f'{flags_all.shape} Flags file saved to {flags_filename}')
 #Any intermediate numpy arrays can be written out here, in addition to the flags array above
 
 
-
-
+np.save(avg_pre_filename, avg_pre)
+np.save(avg_post_filename, avg_post)
 # * * * * * * * * * * * * * *
 #=================================================
 

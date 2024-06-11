@@ -83,8 +83,8 @@ import RFI_detection as rfi
 
 #directories of interest
 in_dir = '/data/rfimit/unmitigated/rawdata/'#leibniz only
-out_dir = '/data/scratch/SKresults/'#leibniz only
-jstor_dir = '/jetstor/scratch/SK_rawdata_results/'#leibniz only
+out_dir = '/data/scratch/IQRMresults/'#leibniz only
+jstor_dir = '/jetstor/scratch/IQRM_rawdata_results/'#leibniz only
 
 #ID string of your RFI mitigation algorithm, for filenames and input parameters
 
@@ -111,17 +111,17 @@ parser.add_argument('-IQRM_threshold',dest='IQRM_threshold',type=float,required=
 #don't forget to parse each parameter and assign to a variable below
 """
 """
-parser.add_argument('-IQRM_datatype',dest='IQRM_datatype',type=str,required=False,default='power',help='String. Determines the type of data that is input into the IQRM function. Default 'power'.')
+parser.add_argument('-IQRM_datatype',dest='IQRM_datatype',type=str,required=False,default='power',help='String. Options: 'std' 'power'. Determines the type of data that is input into the IQRM function. Default 'power'.')
 """
 """
-parser.add_argument('-IQRM_breakdown',dest='IQRM_breakdown',type=int,required=False,default=512,help='Integer. Required if using the standard deviation of the data as an input to IQRM. Determines the breakdown of the groups when calculating the stdev. Default '512'.')
+parser.add_argument('-IQRM_breakdown',dest='IQRM_breakdown',type=int,required=False,default=512,help='Integer. Recommended if using the standard deviation of the data as an input to IQRM. Determines the breakdown of the groups when calculating the stdev. Default '512'.')
 """
 
 args = parser.parse_args()
 IQRM_radius = args.IQRM_radius
 IQRM_threshold = args.IQRM_threshold
 IQRM_datatype = args.IQRM_threshold
-
+IQRM_breakdown = args.IQRM_breakdown
 
 # * * * * * * * * * * * * * *
 #=================================================
@@ -140,7 +140,7 @@ infile,in_dir = template_infile_mod(infile,in_dir)
 
 #pattern for your parameters specific to the RFI
 #example for SK:
-if IQRM_datatype = std:
+if IQRM_datatype == 'std':
     outfile_pattern = f"r{IQRM_radius}_t{IQRM_threshold}_{IQRM_datatype}_b{IQRM_breakdown}"
 else:
     outfile_pattern = f"r{IQRM_radius}_t{IQRM_threshold}_{IQRM_datatype}"
@@ -160,17 +160,17 @@ flags_filename = f"{npybase}_flags_{IDstr}_{outfile_pattern}_{cust}.npy"
 
 #threshold calc from sigma
 IQRM_lag = iqrm.genlags(IQRM_radius, geofactor=1.5)
-print('lagged distance: {}'.format(SK_p))
+print('integer lags, k: {}'.format(IQRM_lag))
 
 #calculate % flagged
-print('Calculating flagged percent...')
-flagged = np.mean(flag_chunk)
-print('Flagged: '+str(flagged)+'%')
+# print('Calculating flagged percent...')
+# flagged = np.mean(flag_chunk)
+# print('Flagged: '+str(flagged)+'%')
 
-#calculate ms thresholds
-ms_lt, ms_ut = SK_thresholds(SK_M*ms0*ms1, N = n, d = d, p = SK_p)
-print('MS Upper Threshold: '+str(ms_ut))
-print('MS Lower Threshold: '+str(ms_lt))
+# #calculate ms thresholds
+# ms_lt, ms_ut = SK_thresholds(SK_M*ms0*ms1, N = n, d = d, p = SK_p)
+# print('MS Upper Threshold: '+str(ms_ut))
+# print('MS Lower Threshold: '+str(ms_lt))
 
 
 # * * * * * * * * * * * * * *
@@ -273,17 +273,17 @@ for block in range(numblocks//mb):
 	#======================================
 # is this indented?
 # average
-if IQRM_datatype == 'power':
-    flag_chunk, avg_pre, avg_post = rfi.iqrm_power(data, IQRM_radius, IQRM_threshold)
-    
-# standard dev
-else if IQRM_datatype == 'std': 
-    flag_chunk, avg_pre, avg_post = rfi.iqrm_std(data, IQRM_radius, IQRM_threshold, IQRM_breakdown)
+	if IQRM_datatype == 'power':
+		flag_chunk, avg_pre = rfi.iqrm_power(data, IQRM_radius, IQRM_threshold)
+
+    # standard dev
+	else:# if IQRM_datatype == 'std': 
+		flag_chunk, avg_pre = rfi.iqrm_std(data, IQRM_radius, IQRM_threshold, IQRM_breakdown)
 
     
     
-else:
-    return #throw some error?
+# else:
+#     return #throw some error?
 
 
 
@@ -349,13 +349,12 @@ print(f'{flags_all.shape} Flags file saved to {flags_filename}')
 
 #=================================================
 # * * * * * * * * * * * * * *
-
+# avg_post = averager(np.abs(out_rawFile)**2,512)
 
 #Any intermediate numpy arrays can be written out here, in addition to the flags array above
 
-
 np.save(avg_pre_filename, avg_pre)
-np.save(avg_post_filename, avg_post)
+# np.save(avg_post_filename, avg_post)
 # * * * * * * * * * * * * * *
 #=================================================
 

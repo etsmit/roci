@@ -33,7 +33,7 @@ def template_parse(parser):
 	parser.add_argument('-cust',dest='cust',type=str,default='',help='custom tag to add to end of filename')
 
 	#using multiple blocks at once to help stats replacement
-parser.add_argument('-mult',dest='mb',type=int,default=1,help='load multiple blocks at once to help with stats/prevgood replacement')
+	parser.add_argument('-mult',dest='mb',type=int,default=1,help='load multiple blocks at once to help with stats/prevgood replacement')
 
 	#using multiple blocks at once to help stats replacement
 	parser.add_argument('-union',dest='union',type=int,default=1,help='Combine the polarizations in the flagging step. Default 1.')
@@ -70,9 +70,9 @@ def template_check_outfile(infile,outfile):
 	print('Saving replaced data to '+outfile)
 	print(infile,outfile)
 	if os.path.isfile(outfile):
-		yn = input((f"The output file {outfile} already exists. Press 'y' to start with a fresh copy of the input file, 'n' to continue overwriting what's already there, or ctrl-c to end the script"
+		yn = input((f"The output file {outfile} already exists. Press 'y' to start with a fresh copy of the input file, 'n' to continue overwriting what's already there, or ctrl-c to end the script"))
 		if yn:
-			print('Copying infile to outfile...)
+			print('Copying infile to outfile...')
 			os.system('cp '+infile+' '+outfile)
 
 #check that the number of blocks loaded at once is a divisible integer of the number of blocks in the file
@@ -321,22 +321,22 @@ def template_guppi_format(a):
 	return out_arr
 
 
-def template_print_flagstats(flags_all)
+def template_print_flagstats(flags_all):
 
-tot_points = flags_all[:,:,1].size
-flagged_pts_p1 = np.count_nonzero(flags_all[:,:,0])
-flagged_pts_p2 = np.count_nonzero(flags_all[:,:,1])
+	tot_points = flags_all[:,:,1].size
+	flagged_pts_p1 = np.count_nonzero(flags_all[:,:,0])
+	flagged_pts_p2 = np.count_nonzero(flags_all[:,:,1])
 
 #print(f'Pol0: {flagged_pts_p2} datapoints were flagged out of {tot_points}')
-flagged_percent = (float(flagged_pts_p1)/tot_points)*100
-print(f'Pol0: {np.mean(flags_all[:,:,0]}% of data outside acceptable ranges')
+	flagged_percent = (float(flagged_pts_p1)/tot_points)*100
+	print(f'Pol0: {np.mean(flags_all[:,:,0])}% of data outside acceptable ranges')
 
 #print(f'Pol1: {flagged_pts_p2} datapoints were flagged out of {tot_points}')
-flagged_percent = (float(flagged_pts_p2)/tot_points)*100
-print(f'Pol1: {np.mean(flags_all[:,:,0]}% of data outside acceptable ranges')
+	flagged_percent = (float(flagged_pts_p2)/tot_points)*100
+	print(f'Pol1: {np.mean(flags_all[:,:,0])}% of data outside acceptable ranges')
 
-flags_all[:,:,0][flags_all[:,:,1]==1]=1
-print(f'Union of flags: {np.mean(flags_all[:,:,0])}% of data flagged')
+	flags_all[:,:,0][flags_all[:,:,1]==1]=1
+	print(f'Union of flags: {np.mean(flags_all[:,:,0])}% of data flagged')
 
 
 

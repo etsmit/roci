@@ -112,13 +112,13 @@ def ms_SK_EST(s1,s2,m,n=1,d=1):
 	return sk_est
 
 
-def master_SK_EST(data,SK_M,m,n,n=1,d=1):
+def master_SK_EST(data,SK_M,m,n=1,d=1):
 	
 
 	num_skbins = data.shape[1]//SK_M
 
+	data = np.abs(np.reshape(data,(data.shape[0],-1,SK_M,data.shape[2])))**2
 
-	data = np.abs(np.reshape(data,(data.shape[0],-1,SK_M,data.shape[2]))**2)
 
 	s1 = np.sum(data,axis=2)
 	s2 = np.sum(data**2,axis=2)
@@ -126,6 +126,64 @@ def master_SK_EST(data,SK_M,m,n,n=1,d=1):
 	spect_block = np.mean(data,axis=1)
 
 
+
+
+def upperRoot(x, moment_2, moment_3, p):
+	upper = np.abs( (1 - sp.special.gammainc( (4 * moment_2**3)/moment_3**2, (-(moment_3-2*moment_2**2)/moment_3 + x)/(moment_3/2/moment_2)))-p)
+	return upper
+
+#helps calculate lower SK threshold
+def lowerRoot(x, moment_2, moment_3, p):
+	lower = np.abs(sp.special.gammainc( (4 * moment_2**3)/moment_3**2, (-(moment_3-2*moment_2**2)/moment_3 + x)/(moment_3/2/moment_2))-p)
+	return lower
+
+#fully calculates upper and lower thresholds
+#M = SK_ints
+#default p = PFA = 0.0013499 corresponds to 3sigma excision
+def SK_thresholds(M, N = 1, d = 1, p = 0.0013499):
+	"""
+	Determine SK thresholds numerically.
+
+	Parameters
+	-----------
+	m : int
+		integer value of M in the SK function. Outside accumulations of spectra.
+	n : int
+		integer value of N in the SK function. Inside accumulations of spectra.
+	d : float
+		shape parameter d in the SK function. Usually 1 but can be empirically determined.
+	p : float
+		Prob of false alarm. 0.0013499 corresponds to 3-sigma excision.
+	
+	Returns
+	-----------
+	out : tuple
+		Tuple of (lower threshold, upper threshold).
+	"""
+
+	Nd = N * d
+	#Statistical moments
+	moment_1 = 1
+	moment_2 = float(( 2*(M**2) * Nd * (1 + Nd) )) / ( (M - 1) * (6 + 5*M*Nd + (M**2)*(Nd**2)) )
+	moment_3 = float(( 8*(M**3)*Nd * (1 + Nd) * (-2 + Nd * (-5 + M * (4+Nd))) )) / ( ((M-1)**2) * (2+M*Nd) *(3+M*Nd)*(4+M*Nd)*(5+M*Nd))
+	moment_4 = float(( 12*(M**4)*Nd*(1+Nd)*(24+Nd*(48+84*Nd+M*(-32+Nd*(-245-93*Nd+M*(125+Nd*(68+M+(3+M)*Nd)))))) )) / ( ((M-1)**3)*(2+M*Nd)*(3+M*Nd)*(4+M*Nd)*(5+M*Nd)*(6+M*Nd)*(7+M*Nd) )
+	#Pearson Type III Parameters
+	delta = moment_1 - ( (2*(moment_2**2))/moment_3 )
+	beta = 4 * ( (moment_2**3)/(moment_3**2) )
+	alpha = moment_3 / (2 * moment_2)
+	beta_one = (moment_3**2)/(moment_2**3)
+	beta_two = (moment_4)/(moment_2**2)
+	error_4 = np.abs( (100 * 3 * beta * (2+beta) * (alpha**4)) / (moment_4 - 1) )
+	kappa = float( beta_one*(beta_two+3)**2 ) / ( 4*(4*beta_two-3*beta_one)*(2*beta_two-3*beta_one-6) )
+	print('kappa: {}'.format(kappa))
+	x = [1]
+	print(x, moment_2, moment_3, p)
+	upperThreshold = sp.optimize.newton(upperRoot, x[0], args = (moment_2, moment_3, p))
+	lowerThreshold = sp.optimize.newton(lowerRoot, x[0], args = (moment_2, moment_3, p))
+	return lowerThreshold, upperThreshold
+
+
+	
 
 
 def averager(data,m):

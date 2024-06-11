@@ -84,9 +84,27 @@ in_dir = '/data/rfimit/unmitigated/rawdata/'#leibniz only
 out_dir = '/data/scratch/SKresults/'#leibniz only
 jstor_dir = '/jetstor/scratch/SK_rawdata_results/'#leibniz only
 
-#ID string of your RFI mitigation algorithm, for filenames and input parameters
-
 parser = argparse.ArgumentParser(description="""function description""")
+
+
+#input file
+parser.add_argument('-i',dest='infile',type=str,required=True,help='String. Required. Name of input filename. Automatically pulls from standard data directory. If leading "/" given, pulls from given directory')
+
+#replacement method
+parser.add_argument('-r',dest='method',type=str,choices=['zeros','previousgood','stats','nans'], required=True,default='zeros',help='String. Required. Replacement method of flagged data in output raw data file. Can be "zeros","previousgood", nans or "stats"')
+
+#write out a whole new raw file or just get SK/accumulated spectra results
+parser.add_argument('-newfile',dest='output_bool',type=bool,default=True,help='Copy the original data and output a replaced datafile. Default True. Change to False to not write out a whole new GUPPI file')
+
+#custom filename tag (for adding info not already covered in lines 187
+parser.add_argument('-cust',dest='cust',type=str,default='',help='custom tag to add to end of filename')
+
+#using multiple blocks at once to help stats replacement
+parser.add_argument('-mult',dest='mb',type=int,default=1,help='load multiple blocks at once to help with stats/prevgood replacement')
+
+#using multiple blocks at once to help stats replacement
+parser.add_argument('-union',dest='union',type=int,default=1,help='Combine the polarizations in the flagging step. Default 1.')
+
 
 #=================================================
 # * * * * * * * * * * * * * *
@@ -113,6 +131,15 @@ args = parser.parse_args()
 
 #load in the global arguments
 
+infile = args.infile
+method = args.method
+rawdata = args.rawdata
+cust = args.cust
+mb = args.mb
+output_bool = args.output_bool
+combine_flag_pols = args.union
+
+
 infile, method, rawdata, output_bool, cust, mb, combine_flag_pols = template_parse(parser)
 
 
@@ -125,7 +152,7 @@ infile,in_dir = template_infile_mod(infile,in_dir)
 
 #pattern for your parameters specific to the RFI
 #example for SK:
-outfile_pattern = "m{SK_M}_s{sigma}_ms{ms0}-{ms1}"
+outfile_pattern = f"m{SK_M}_s{sigma}_ms{ms0}-{ms1}"
 
 
 # any separate results filenames you need, in addition to the flags filename, put them here
@@ -133,7 +160,7 @@ npybase = out_dir+'npy_results/'+infile[len(in_dir):-4]
 
 
 flags_filename = f"{npybase}_flags_{IDstr}_{outfile_pattern}_{cust}.npy"
-
+spost_filename = f"{npybase}_spost_{IDstr}_{outfile_pattern}_{cust}.npy"
 
 
 #And then any one-off calculations at the beginning of the script
@@ -278,7 +305,7 @@ for block in range(numblocks//mb):
 		flag_chunk[:,:,0][flag_chunk[:,:,1]==1]=1
 		flag_chunk[:,:,1][flag_chunk[:,:,0]==1]=1
 
-	ts_factor = data.shape[1] // repl_chunk.shape[1]
+	ts_factor = data.shape[1] // repl_chunk.shape[1] = 512
 	if (data.shape[1] % flag_chunk.shape[1] != 0):
 		print('Flag chunk size is incompatible with block size')
 		sys.exit()
@@ -296,6 +323,14 @@ for block in range(numblocks//mb):
 		#replace data with statistical noise derived from good datapoints
 		data = statistical_noise_fir(data,flag_chunk,ts_factor)
 
+    spost = template_averager(data,512)
+	if (block==0):
+		spost_all = spost
+	else:
+		spost_all = np.concatenate((spost_all,spost),axis=1)
+
+
+
 
 	#Write back to copied raw file
 	if output_bool:
@@ -312,6 +347,10 @@ for block in range(numblocks//mb):
 np.save(flags_filename,flags_all)
 print(f'{flags_all.shape} Flags file saved to {flags_filename}')
 
+#save spost results
+np.save(spost_filename,spost_all)
+print(f'{spost_all.shape} Flags file saved to {spost_filename}')
+
 
 #=================================================
 # * * * * * * * * * * * * * *
@@ -319,7 +358,7 @@ print(f'{flags_all.shape} Flags file saved to {flags_filename}')
 
 #Any intermediate numpy arrays can be written out here, in addition to the flags array above
 
-
+spost save
 
 
 # * * * * * * * * * * * * * *

@@ -35,7 +35,7 @@ def template_parse(parser):
 	#using multiple blocks at once to help stats replacement
 	parser.add_argument('-mult',dest='mb',type=int,default=1,help='load multiple blocks at once to help with stats/prevgood replacement')
 
-	#using multiple blocks at once to help stats replacement
+    #using multiple blocks at once to help stats replacement
 	parser.add_argument('-union',dest='union',type=int,default=1,help='Combine the polarizations in the flagging step. Default 1.')
 
 	#parse input variables
@@ -337,6 +337,28 @@ def template_print_flagstats(flags_all):
 
 	flags_all[:,:,0][flags_all[:,:,1]==1]=1
 	print(f'Union of flags: {np.mean(flags_all[:,:,0])}% of data flagged')
+
+
+	tot_points = flags_all[:,:,1].size
+	flagged_pts_p1 = np.count_nonzero(flags_all[:,:,0])
+	flagged_pts_p2 = np.count_nonzero(flags_all[:,:,1])
+
+	#print(f'Pol0: {flagged_pts_p2} datapoints were flagged out of {tot_points}')
+	flagged_percent = (float(flagged_pts_p1)/tot_points)*100
+	print(f'Pol0: {np.mean(flags_all[:,:,0])}% of data outside acceptable ranges')
+
+	#print(f'Pol1: {flagged_pts_p2} datapoints were flagged out of {tot_points}')
+	flagged_percent = (float(flagged_pts_p2)/tot_points)*100
+	print(f'Pol1: {np.mean(flags_all[:,:,0])}% of data outside acceptable ranges')
+
+	flags_all[:,:,0][flags_all[:,:,1]==1]=1
+	print(f'Union of flags: {np.mean(flags_all[:,:,0])}% of data flagged')
+
+def template_average(data,m):
+	step1 = np.reshape(data, (data.shape[0],-1,m))
+	step2 = np.mean(step1,axis=2
+	return step2
+
 
 
 

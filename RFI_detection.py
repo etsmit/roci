@@ -205,15 +205,15 @@ def stdever(data,m):
 
 
 def iqrm_power(data, radius, threshold):
-    m = 512 # constant
-    avg_pre = averager(np.abs(data)**2,m)
-    data = np.abs(data)**2
-    for i in tqdm(range(data.shape[2])): # iterate through polarizations
-        for j in range(data.shape[0]): # iterate through channels
-            flag_chunk[j,:,i] = iqrm.iqrm_mask(data[j,:,i], radius = radius, threshold = threshold)[0]
+	m = 512 # constant
+	avg_pre = averager(np.abs(data)**2,m)
+	data = np.abs(data)**2
+	for i in tqdm(range(data.shape[2])): # iterate through polarizations
+		for j in range(data.shape[0]): # iterate through channels
+			flag_chunk[j,:,i] = iqrm.iqrm_mask(data[j,:,i], radius = radius, threshold = threshold)[0]
     
 #     avg_post = 
-    return flag_chunk, avg_pre
+	return flag_chunk, avg_pre
 
 
 

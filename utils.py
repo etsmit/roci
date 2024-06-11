@@ -356,7 +356,7 @@ def template_print_flagstats(flags_all):
 
 def template_average(data,m):
 	step1 = np.reshape(data, (data.shape[0],-1,m))
-	step2 = np.mean(step1,axis=2
+	step2 = np.mean(step1,axis=2)
 	return step2
 
 

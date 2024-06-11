@@ -140,7 +140,7 @@ output_bool = args.output_bool
 combine_flag_pols = args.union
 
 
-infile, method, rawdata, output_bool, cust, mb, combine_flag_pols = template_parse(parser)
+#infile, method, rawdata, output_bool, cust, mb, combine_flag_pols = template_parse(parser)
 
 
 #check infile, modify it to include in_dir if we don't give a full path to the file

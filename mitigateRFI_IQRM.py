@@ -73,6 +73,7 @@ from blimpy import GuppiRaw
 from utils import *
 
 import iqrm
+
 import RFI_detection as rfi
 
 
@@ -119,27 +120,24 @@ IDstr = 'IQRM'
 
 #example, for SK:
 
-"""
+
 parser.add_argument('-IQRM_radius',dest='IQRM_radius',type=int,required=False,default=5,help='Integer. Determines the outlier status of a point by using the number of elements to its furthest neighbor. Default 5.')
 #put a denotation at the beginning (e.g. "SK_") to ensure it's separate from the global input arguments in utils.py
 #don't forget to parse each parameter and assign to a variable below
-"""
-"""
-parser.add_argument('-IQRM_threshold',dest='IQRM_threshold',type=float,required=False,default=3.0,help='Float. Controls the bounds for the otlier status with a number of Gaussian standard deviations. Default 3.0.')
+
+parser.add_argument('-IQRM_threshold',dest='IQRM_threshold',type=float,required=False,default=3.0,help="Float. Controls the bounds for the otlier status with a number of Gaussian standard deviations. Default 3.0.")
 #put a denotation at the beginning (e.g. "SK_") to ensure it's separate from the global input arguments in utils.py
 #don't forget to parse each parameter and assign to a variable below
-"""
-"""
-parser.add_argument('-IQRM_datatype',dest='IQRM_datatype',type=str,required=False,default='power',help='String. Options: 'std' 'power'. Determines the type of data that is input into the IQRM function. Default 'power'.')
-"""
-"""
-parser.add_argument('-IQRM_breakdown',dest='IQRM_breakdown',type=int,required=False,default=512,help='Integer. Recommended if using the standard deviation of the data as an input to IQRM. Determines the breakdown of the groups when calculating the stdev. Default '512'.')
-"""
+
+parser.add_argument('-IQRM_datatype',dest='IQRM_datatype',type=str,required=False,default='power',help="String. Options: 'std' 'power'. Determines the type of data that is input into the IQRM function. Default 'power'.")
+
+parser.add_argument('-IQRM_breakdown',dest='IQRM_breakdown',type=int,required=False,default=512,help="Integer. Recommended if using the standard deviation of the data as an input to IQRM. Determines the breakdown of the groups when calculating the stdev. Default 512.")
+
 
 args = parser.parse_args()
 IQRM_radius = args.IQRM_radius
 IQRM_threshold = args.IQRM_threshold
-IQRM_datatype = args.IQRM_threshold
+IQRM_datatype = args.IQRM_datatype
 IQRM_breakdown = args.IQRM_breakdown
 
 # * * * * * * * * * * * * * *
@@ -151,14 +149,14 @@ IQRM_breakdown = args.IQRM_breakdown
 
 infile = args.infile
 method = args.method
-rawdata = args.rawdata
+# rawdata = args.rawdata
 cust = args.cust
 mb = args.mb
 output_bool = args.output_bool
 combine_flag_pols = args.union
 
 #check infile, modify it to include in_dir if we don't give a full path to the file
-infile,in_dir = template_infile_mod(infile,in_dir)
+infile = template_infile_mod(infile,in_dir)
 
 
 #=================================================
@@ -186,7 +184,7 @@ flags_filename = f"{npybase}_flags_{IDstr}_{outfile_pattern}_{cust}.npy"
 #And then any one-off calculations at the beginning of the script
 
 #threshold calc from sigma
-IQRM_lag = iqrm.genlags(IQRM_radius, geofactor=1.5)
+IQRM_lag = iqrm.core.genlags(IQRM_radius, geofactor=1.5)
 print('integer lags, k: {}'.format(IQRM_lag))
 
 #calculate % flagged
@@ -209,8 +207,8 @@ outfile = f"{jstor_dir}{infile[len(in_dir):-4]}_{IDstr}_{outfile_pattern}_mb{mb}
 
 
 
-if rawdata:
-	print('Saving raw data to npy block style files')
+# if rawdata:
+# 	print('Saving raw data to npy block style files')
 
 
 #--------------------------------------

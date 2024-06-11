@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from RFI_support import *
 
 from numba import jit,prange
-
+import iqrm
 
 
 
@@ -117,14 +117,13 @@ def master_SK_EST(data,SK_M,m,n=1,d=1):
 
 	num_skbins = data.shape[1]//SK_M
 
-
 	data = np.abs(np.reshape(data,(data.shape[0],-1,SK_M,data.shape[2])))**2
+
 
 	s1 = np.sum(data,axis=2)
 	s2 = np.sum(data**2,axis=2)
 
 	spect_block = np.mean(data,axis=1)
-
 
 
 
@@ -187,16 +186,50 @@ def SK_thresholds(M, N = 1, d = 1, p = 0.0013499):
 	
 
 
+def averager(data,m):
+	"""
+	averages data for IQRM
+	"""
+	step1 = np.reshape(data,(data.shape[0],-1,m))
+	step2 = np.nanmean(step1,axis=2)
+	return step2             
+                  
+
+def stdever(data,m):
+	"""
+	standard deviation of data
+	"""
+	step1 = np.reshape(data,(data.shape[0],-1,m))
+	step2 = np.nanstd(step1,axis=2)
+	return step2
+
+
+def iqrm_power(data, radius, threshold):
+	m = 512 # constant
+	avg_pre = averager(np.abs(data)**2,m)
+	data = np.abs(data)**2
+	for i in tqdm(range(data.shape[2])): # iterate through polarizations
+		for j in range(data.shape[0]): # iterate through channels
+			flag_chunk[j,:,i] = iqrm.iqrm_mask(data[j,:,i], radius = radius, threshold = threshold)[0]
+    
+#     avg_post = 
+	return flag_chunk, avg_pre
 
 
 
+def iqrm_std(data, radius, threshold, breakdown):
+	"""
+	breakdown must be a factor of the time shape data[1].shape()
+	"""
+	m = 512 # constant
+	avg_pre = averager(np.abs(data)**2, m)
+	data = stdever(np.abs(data)**2, breakdown) # make it a stdev
+	for i in tqdm(range(data.shape[2])): # iterate through polarizations
+		for j in range(data.shape[0]): # iterate through channels
+			flag_chunk[j,:,i] = iqrm.iqrm_mask(data[j,:,i], radius = radius, threshold = threshold)[0]
 
-
-
-
-
-
-
+#     avg_post = 
+	return flag_chunk, avg_pre
 
 
 

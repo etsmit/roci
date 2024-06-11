@@ -72,6 +72,8 @@ from blimpy import GuppiRaw
 
 from utils import *
 
+import iqrm
+import RFI_detection as rfi
 
 
 #--------------------------------------
@@ -81,66 +83,52 @@ from utils import *
 
 #directories of interest
 in_dir = '/data/rfimit/unmitigated/rawdata/'#leibniz only
-out_dir = '/data/scratch/SKresults/'#leibniz only
-jstor_dir = '/jetstor/scratch/SK_rawdata_results/'#leibniz only
+out_dir = '/data/scratch/IQRMresults/'#leibniz only
+jstor_dir = '/jetstor/scratch/IQRM_rawdata_results/'#leibniz only
+
+#ID string of your RFI mitigation algorithm, for filenames and input parameters
 
 parser = argparse.ArgumentParser(description="""function description""")
-
-
-#input file
-parser.add_argument('-i',dest='infile',type=str,required=True,help='String. Required. Name of input filename. Automatically pulls from standard data directory. If leading "/" given, pulls from given directory')
-
-#replacement method
-parser.add_argument('-r',dest='method',type=str,choices=['zeros','previousgood','stats','nans'], required=True,default='zeros',help='String. Required. Replacement method of flagged data in output raw data file. Can be "zeros","previousgood", nans or "stats"')
-
-#write out a whole new raw file or just get SK/accumulated spectra results
-parser.add_argument('-newfile',dest='output_bool',type=bool,default=True,help='Copy the original data and output a replaced datafile. Default True. Change to False to not write out a whole new GUPPI file')
-
-#custom filename tag (for adding info not already covered in lines 187
-parser.add_argument('-cust',dest='cust',type=str,default='',help='custom tag to add to end of filename')
-
-#using multiple blocks at once to help stats replacement
-parser.add_argument('-mult',dest='mb',type=int,default=1,help='load multiple blocks at once to help with stats/prevgood replacement')
-
-#using multiple blocks at once to help stats replacement
-parser.add_argument('-union',dest='union',type=int,default=1,help='Combine the polarizations in the flagging step. Default 1.')
-
 
 #=================================================
 # * * * * * * * * * * * * * *
 
 #ID string of your RFI mitigation algorithm, for filenames and input parameters
-IDstr = 'SK'
+IDstr = 'IQRM'
 
 #parse the input arguments specific to your RFI mitigation algorithm
 
 #example, for SK:
 
 """
-parser.add_argument('-SK_m',dest='SK_M',type=int,required=True,default=512,help='Integer. Required. "M" in the SK equation. Number of data points to perform SK on at once/average together for spectrogram. ex. 1032704 (length of each block) has prime divisors (2**9) and 2017. Default 512.')
+parser.add_argument('-IQRM_radius',dest='IQRM_radius',type=int,required=False,default=5,help='Integer. Determines the outlier status of a point by using the number of elements to its furthest neighbor. Default 5.')
 #put a denotation at the beginning (e.g. "SK_") to ensure it's separate from the global input arguments in utils.py
 #don't forget to parse each parameter and assign to a variable below
 """
+"""
+parser.add_argument('-IQRM_threshold',dest='IQRM_threshold',type=float,required=False,default=3.0,help='Float. Controls the bounds for the otlier status with a number of Gaussian standard deviations. Default 3.0.')
+#put a denotation at the beginning (e.g. "SK_") to ensure it's separate from the global input arguments in utils.py
+#don't forget to parse each parameter and assign to a variable below
+"""
+"""
+parser.add_argument('-IQRM_datatype',dest='IQRM_datatype',type=str,required=False,default='power',help='String. Options: 'std' 'power'. Determines the type of data that is input into the IQRM function. Default 'power'.')
+"""
+"""
+parser.add_argument('-IQRM_breakdown',dest='IQRM_breakdown',type=int,required=False,default=512,help='Integer. Recommended if using the standard deviation of the data as an input to IQRM. Determines the breakdown of the groups when calculating the stdev. Default '512'.')
+"""
 
 args = parser.parse_args()
-#SK_M = args.SK_M
-
+IQRM_radius = args.IQRM_radius
+IQRM_threshold = args.IQRM_threshold
+IQRM_datatype = args.IQRM_threshold
+IQRM_breakdown = args.IQRM_breakdown
 
 # * * * * * * * * * * * * * *
 #=================================================
 
 #load in the global arguments
 
-infile = args.infile
-method = args.method
-rawdata = args.rawdata
-cust = args.cust
-mb = args.mb
-output_bool = args.output_bool
-combine_flag_pols = args.union
-
-
-#infile, method, rawdata, output_bool, cust, mb, combine_flag_pols = template_parse(parser)
+infile, method, rawdata, output_bool, cust, mb, combine_flag_pols = template_parse(parser)
 
 
 #check infile, modify it to include in_dir if we don't give a full path to the file
@@ -152,33 +140,37 @@ infile,in_dir = template_infile_mod(infile,in_dir)
 
 #pattern for your parameters specific to the RFI
 #example for SK:
-outfile_pattern = f"m{SK_M}_s{sigma}_ms{ms0}-{ms1}"
+if IQRM_datatype == 'std':
+    outfile_pattern = f"r{IQRM_radius}_t{IQRM_threshold}_{IQRM_datatype}_b{IQRM_breakdown}"
+else:
+    outfile_pattern = f"r{IQRM_radius}_t{IQRM_threshold}_{IQRM_datatype}"
 
 
 # any separate results filenames you need, in addition to the flags filename, put them here
 npybase = out_dir+'npy_results/'+infile[len(in_dir):-4]
 
 
-flags_filename = f"{npybase}_flags_{IDstr}_{outfile_pattern}_{cust}.npy"
-spost_filename = f"{npybase}_spost_{IDstr}_{outfile_pattern}_{cust}.npy"
+avg_pre_filename = f"{npybase}_avg_pre_{IDstr}_{outfile_pattern}_{cust}.npy"
+avg_post_filename = f"{npybase}_avg_post_{IDstr}_{outfile_pattern}_{cust}.npy"
 
+
+flags_filename = f"{npybase}_flags_{IDstr}_{outfile_pattern}_{cust}.npy"
 
 #And then any one-off calculations at the beginning of the script
 
 #threshold calc from sigma
-SK_p = (1-scipy.special.erf(sigma/math.sqrt(2))) / 2
-print('Probability of false alarm: {}'.format(SK_p))
+IQRM_lag = iqrm.genlags(IQRM_radius, geofactor=1.5)
+print('integer lags, k: {}'.format(IQRM_lag))
 
-#calculate thresholds
-print('Calculating SK thresholds...')
-lt, ut = SK_thresholds(SK_M, N = n, d = d, p = SK_p)
-print('Upper Threshold: '+str(ut))
-print('Lower Threshold: '+str(lt))
+#calculate % flagged
+# print('Calculating flagged percent...')
+# flagged = np.mean(flag_chunk)
+# print('Flagged: '+str(flagged)+'%')
 
-#calculate ms thresholds
-ms_lt, ms_ut = SK_thresholds(SK_M*ms0*ms1, N = n, d = d, p = SK_p)
-print('MS Upper Threshold: '+str(ms_ut))
-print('MS Lower Threshold: '+str(ms_lt))
+# #calculate ms thresholds
+# ms_lt, ms_ut = SK_thresholds(SK_M*ms0*ms1, N = n, d = d, p = SK_p)
+# print('MS Upper Threshold: '+str(ms_ut))
+# print('MS Lower Threshold: '+str(ms_lt))
 
 
 # * * * * * * * * * * * * * *
@@ -279,6 +271,21 @@ for block in range(numblocks//mb):
 	#	 and you simply place the function calls here.
 	#
 	#======================================
+# is this indented?
+# average
+	if IQRM_datatype == 'power':
+		flag_chunk, avg_pre = rfi.iqrm_power(data, IQRM_radius, IQRM_threshold)
+
+    # standard dev
+	else:# if IQRM_datatype == 'std': 
+		flag_chunk, avg_pre = rfi.iqrm_std(data, IQRM_radius, IQRM_threshold, IQRM_breakdown)
+
+    
+    
+# else:
+#     return #throw some error?
+
+
 
 	#if you are making any intermediate numpy arrays (in addition to the flagging array), fill them here:
 
@@ -305,7 +312,7 @@ for block in range(numblocks//mb):
 		flag_chunk[:,:,0][flag_chunk[:,:,1]==1]=1
 		flag_chunk[:,:,1][flag_chunk[:,:,0]==1]=1
 
-	ts_factor = data.shape[1] // repl_chunk.shape[1] = 512
+	ts_factor = data.shape[1] // repl_chunk.shape[1]
 	if (data.shape[1] % flag_chunk.shape[1] != 0):
 		print('Flag chunk size is incompatible with block size')
 		sys.exit()
@@ -323,14 +330,6 @@ for block in range(numblocks//mb):
 		#replace data with statistical noise derived from good datapoints
 		data = statistical_noise_fir(data,flag_chunk,ts_factor)
 
-    spost = template_averager(data,512)
-	if (block==0):
-		spost_all = spost
-	else:
-		spost_all = np.concatenate((spost_all,spost),axis=1)
-
-
-
 
 	#Write back to copied raw file
 	if output_bool:
@@ -347,20 +346,15 @@ for block in range(numblocks//mb):
 np.save(flags_filename,flags_all)
 print(f'{flags_all.shape} Flags file saved to {flags_filename}')
 
-#save spost results
-np.save(spost_filename,spost_all)
-print(f'{spost_all.shape} Flags file saved to {spost_filename}')
-
 
 #=================================================
 # * * * * * * * * * * * * * *
-
+# avg_post = averager(np.abs(out_rawFile)**2,512)
 
 #Any intermediate numpy arrays can be written out here, in addition to the flags array above
 
-spost save
-
-
+np.save(avg_pre_filename, avg_pre)
+# np.save(avg_post_filename, avg_post)
 # * * * * * * * * * * * * * *
 #=================================================
 

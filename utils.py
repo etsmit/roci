@@ -71,9 +71,11 @@ def template_check_outfile(infile,outfile):
 	print(infile,outfile)
 	if os.path.isfile(outfile):
 		yn = input((f"The output file {outfile} already exists. Press 'y' to start with a fresh copy of the input file, 'n' to continue overwriting what's already there, or ctrl-c to end the script"))
-		if yn:
+		if yn=='y':
 			print('Copying infile to outfile...')
 			os.system('cp '+infile+' '+outfile)
+	else:
+		os.system('cp '+infile+' '+outfile)
 
 #check that the number of blocks loaded at once is a divisible integer of the number of blocks in the file
 def template_check_nblocks(rawFile,mb):
@@ -91,6 +93,7 @@ def template_print_header(rawFile):
 	print('Header size: {} bytes'.format(headersize))
 	for line in header:
 		print(line+':  '+str(header[line]))
+	return headersize
 
 #save numpy files
 def template_save_npy(data,block,npy_base):
@@ -156,8 +159,8 @@ def repl_nans(a,f):
 
 
 #replace with statistical noise
-@jit(parallel=True)
-def statistical_noise_fir(a,f,ts_factor,use_same_tb):
+# @jit(parallel=True)
+def statistical_noise_fir(a,f,ts_factor):
 	"""
 	Replace flagged data with statistical noise.
 	- fir version that adds a fir in the noise
@@ -185,7 +188,7 @@ def statistical_noise_fir(a,f,ts_factor,use_same_tb):
 
 	for pol in prange(f.shape[2]):
 		for i in prange(f.shape[0]):
-			if use_same_tb:
+			if ts_factor!=1:
 				for tb in prange(f.shape[1]):
 					if f[i,ts_factor*tb,pol] == 1:
 
@@ -354,7 +357,7 @@ def template_print_flagstats(flags_all):
 	flags_all[:,:,0][flags_all[:,:,1]==1]=1
 	print(f'Union of flags: {np.mean(flags_all[:,:,0])}% of data flagged')
 
-def template_average(data,m):
+def template_averager(data,m):
 	step1 = np.reshape(data, (data.shape[0],-1,m))
 	step2 = np.mean(step1,axis=2)
 	return step2

@@ -51,6 +51,9 @@ Inputs
                         Default 1.
 
 #Assumes two polarizations
+
+python mitigateRFI_IQRM.py -i vegas_60299_76099_B0329+54_0004.0000.raw -r stats -IQRM_datatype power
+
 """
 
 
@@ -75,6 +78,7 @@ from utils import *
 import iqrm
 
 import RFI_detection as rfi
+from tqdm import tqdm
 
 
 #--------------------------------------
@@ -120,17 +124,16 @@ IDstr = 'IQRM'
 
 #example, for SK:
 
-
+# radius
 parser.add_argument('-IQRM_radius',dest='IQRM_radius',type=int,required=False,default=5,help='Integer. Determines the outlier status of a point by using the number of elements to its furthest neighbor. Default 5.')
-#put a denotation at the beginning (e.g. "SK_") to ensure it's separate from the global input arguments in utils.py
-#don't forget to parse each parameter and assign to a variable below
 
+# threshold
 parser.add_argument('-IQRM_threshold',dest='IQRM_threshold',type=float,required=False,default=3.0,help="Float. Controls the bounds for the otlier status with a number of Gaussian standard deviations. Default 3.0.")
-#put a denotation at the beginning (e.g. "SK_") to ensure it's separate from the global input arguments in utils.py
-#don't forget to parse each parameter and assign to a variable below
 
-parser.add_argument('-IQRM_datatype',dest='IQRM_datatype',type=str,required=False,default='power',help="String. Options: 'std' 'power'. Determines the type of data that is input into the IQRM function. Default 'power'.")
+# datatype ADD MORE CHOICES
+parser.add_argument('-IQRM_datatype',dest='IQRM_datatype',type=str, choices=['power', 'std'], required=False,default='power',help="String. Options: 'std' 'power'. Determines the type of data that is input into the IQRM function. Default 'power'.")
 
+# breakdown
 parser.add_argument('-IQRM_breakdown',dest='IQRM_breakdown',type=int,required=False,default=512,help="Integer. Recommended if using the standard deviation of the data as an input to IQRM. Determines the breakdown of the groups when calculating the stdev. Default 512.")
 
 
@@ -227,10 +230,11 @@ if output_bool:
 print('Opening file: '+infile)
 rawFile = GuppiRaw(infile)
 
-
+numblocks = rawFile.find_n_data_blocks()
 template_check_nblocks(rawFile,mb)
 
-
+flagged_pts_p1 = 0
+flagged_pts_p2 = 0
 for block in range(numblocks//mb):
 	print('------------------------------------------')
 	print(f'Block: {(block*mb)+1}/{numblocks}')
@@ -238,7 +242,7 @@ for block in range(numblocks//mb):
 
 	#print header for the first block
 	if block == 0:
-		template_print_header(rawFile)
+		headersize = template_print_header(rawFile)
 
 
 	#loading multiple blocks at once?	
@@ -258,8 +262,8 @@ for block in range(numblocks//mb):
 	print('Data shape: {} || block size: {}'.format(data.shape,data.nbytes))
 
 	#save raw data?
-	if rawdata:
-		template_save_npy(data,block,npy_base)
+# 	if rawdata:
+# 		template_save_npy(data,block,npy_base)
 
 
 #=================================================
@@ -337,7 +341,7 @@ for block in range(numblocks//mb):
 		flag_chunk[:,:,0][flag_chunk[:,:,1]==1]=1
 		flag_chunk[:,:,1][flag_chunk[:,:,0]==1]=1
 
-	ts_factor = data.shape[1] // repl_chunk.shape[1]
+	ts_factor = data.shape[1] // flag_chunk.shape[1]
 	if (data.shape[1] % flag_chunk.shape[1] != 0):
 		print('Flag chunk size is incompatible with block size')
 		sys.exit()

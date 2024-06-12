@@ -204,7 +204,7 @@ def statistical_noise_fir(a,f,ts_factor):
 			else:
 				bad_data_size = np.count_nonzero(f[i,:,pol])
 				if bad_data_size > 0:
-					ave_real,ave_imag,std_real,std_imag,num_iter,failed = adj_chan_good_data(a[:,:,pol],f[:,:,pol],i)
+					std_real,std_imag = adj_chan_good_data(a[:,:,pol],f[:,:,pol],i)
 
 					a[i,:,pol].real[f[i,:,pol] == 1] = noise_filter(0,std_real,bad_data_size,dec)  
 					a[i,:,pol].imag[f[i,:,pol] == 1] = noise_filter(0,std_imag,bad_data_size,dec)

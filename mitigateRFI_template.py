@@ -210,10 +210,11 @@ if output_bool:
 print('Opening file: '+infile)
 rawFile = GuppiRaw(infile)
 
-
+numblocks = rawFile.find_n_data_blocks()
 template_check_nblocks(rawFile,mb)
 
-
+flagged_pts_p1 = 0
+flagged_pts_p2 = 0
 for block in range(numblocks//mb):
 	print('------------------------------------------')
 	print(f'Block: {(block*mb)+1}/{numblocks}')
@@ -221,7 +222,7 @@ for block in range(numblocks//mb):
 
 	#print header for the first block
 	if block == 0:
-		template_print_header(rawFile)
+		headersize = template_print_header(rawFile)
 
 
 	#loading multiple blocks at once?	
@@ -241,8 +242,8 @@ for block in range(numblocks//mb):
 	print('Data shape: {} || block size: {}'.format(data.shape,data.nbytes))
 
 	#save raw data?
-	if rawdata:
-		template_save_npy(data,block,npy_base)
+# 	if rawdata:
+# 		template_save_npy(data,block,npy_base)
 
 
 #=================================================
@@ -305,7 +306,7 @@ for block in range(numblocks//mb):
 		flag_chunk[:,:,0][flag_chunk[:,:,1]==1]=1
 		flag_chunk[:,:,1][flag_chunk[:,:,0]==1]=1
 
-	ts_factor = data.shape[1] // repl_chunk.shape[1] = 512
+	ts_factor = data.shape[1] // flag_chunk.shape[1] = 512
 	if (data.shape[1] % flag_chunk.shape[1] != 0):
 		print('Flag chunk size is incompatible with block size')
 		sys.exit()

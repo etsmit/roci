@@ -320,10 +320,10 @@ for block in range(numblocks//mb):
 
 	if (block==0):
 
-		flags_all = flag_chunk
+		flags_all = flag_chunk.astype(np.int8)
 	else:
 
-		flags_all = np.concatenate((flags_all,flag_chunk),axis=1)
+		flags_all = np.concatenate((flags_all,flag_chunk.astype(np.int8)),axis=1)
 
 	# these will be written to disk at the end of the script
 
@@ -372,6 +372,7 @@ for block in range(numblocks//mb):
 			out_rawFile.seek(headersize,1)
 			d1 = template_guppi_format(data[:,d1s*mb_i:d1s*(mb_i+1),:])
 			out_rawFile.write(d1.tostring())
+	np.save(flags_filename,flags_all)
 
 
 

@@ -10,6 +10,7 @@ from RFI_support import *
 
 from numba import jit,prange
 import iqrm
+from tqdm import tqdm
 
 
 
@@ -208,6 +209,7 @@ def iqrm_power(data, radius, threshold):
 	m = 512 # constant
 	avg_pre = averager(np.abs(data)**2,m)
 	data = np.abs(data)**2
+	flag_chunk = np.zeros(data.shape)
 	for i in tqdm(range(data.shape[2])): # iterate through polarizations
 		for j in range(data.shape[0]): # iterate through channels
 			flag_chunk[j,:,i] = iqrm.iqrm_mask(data[j,:,i], radius = radius, threshold = threshold)[0]
@@ -224,6 +226,7 @@ def iqrm_std(data, radius, threshold, breakdown):
 	m = 512 # constant
 	avg_pre = averager(np.abs(data)**2, m)
 	data = stdever(np.abs(data)**2, breakdown) # make it a stdev
+	flag_chunk = np.zeros(data.shape)
 	for i in tqdm(range(data.shape[2])): # iterate through polarizations
 		for j in range(data.shape[0]): # iterate through channels
 			flag_chunk[j,:,i] = iqrm.iqrm_mask(data[j,:,i], radius = radius, threshold = threshold)[0]

@@ -185,29 +185,33 @@ def statistical_noise_fir(a,f,ts_factor):
 	print(f'loading {hfile} for FIR coefficients')
 	h = np.load(hfile)
 	dec = h[::2*f.shape[0]]
-
+	if ts_factor!=1:
+		pulse = np.ones((1,ts_factor,1))
+		f = np.kron(f,pulse)
 	for pol in prange(f.shape[2]):
 		for i in prange(f.shape[0]):
-			if ts_factor!=1:
-				for tb in prange(f.shape[1]):
-					if f[i,ts_factor*tb,pol] == 1:
 
-						SK_M = ts_factor
+				#for tb in prange(f.shape[1]):
+				#	if f[i,tb,pol] == 1:
+
+				#		SK_M = ts_factor
+                #        pulse = np.ones(ts_factor)
+                        
  
-						std_real,std_imag = adj_chan_good_data(a[:,tb*SK_M:(tb+1)*SK_M,pol],f[:,tb*SK_M:(tb+1)*SK_M,pol],i)
+				#		std_real,std_imag = adj_chan_good_data(a[:,tb*SK_M:(tb+1)*SK_M,pol],f[:,tb,pol],i)
 						
-						(a[i,tb*SK_M:(tb+1)*SK_M,pol].real)[f[i,tb*SK_M:(tb+1)*SK_M,pol] == 1] = noise_filter(0,std_real,SK_M,dec)
+				#		(a[i,tb*SK_M:(tb+1)*SK_M,pol].real) = noise_filter(0,std_real,SK_M,dec)
 					
-						(a[i,tb*SK_M:(tb+1)*SK_M,pol].imag)[f[i,tb*SK_M:(tb+1)*SK_M,pol] == 1] = noise_filter(0,std_imag,SK_M,dec)
+				#		(a[i,tb*SK_M:(tb+1)*SK_M,pol].imag) = noise_filter(0,std_imag,SK_M,dec)
 
 
-			else:
-				bad_data_size = np.count_nonzero(f[i,:,pol])
-				if bad_data_size > 0:
-					std_real,std_imag = adj_chan_good_data(a[:,:,pol],f[:,:,pol],i)
+			#else:
+			bad_data_size = np.count_nonzero(f[i,:,pol])
+			if bad_data_size > 0:
+				std_real,std_imag = adj_chan_good_data(a[:,:,pol],f[:,:,pol],i)
 
-					a[i,:,pol].real[f[i,:,pol] == 1] = noise_filter(0,std_real,bad_data_size,dec)  
-					a[i,:,pol].imag[f[i,:,pol] == 1] = noise_filter(0,std_imag,bad_data_size,dec)
+				a[i,:,pol].real[f[i,:,pol] == 1] = noise_filter(0,std_real,bad_data_size,dec)  
+				a[i,:,pol].imag[f[i,:,pol] == 1] = noise_filter(0,std_imag,bad_data_size,dec)
 	return a
 
 
@@ -231,7 +235,8 @@ def adj_chan_good_data(a,f,c):
 	std_imag : float
 		standard deviation of unflagged imaginary data
 	"""
-
+	if len(f.shape) == 1:
+		f = np.expand_dims(f,axis=1)
 	#num_iter = num_iter
 	#failed = failed
 	#define adjacent channels and clear ones that don't exist (neg chans, too high)
@@ -248,6 +253,7 @@ def adj_chan_good_data(a,f,c):
 
 	adj=1
 	#keep looking for data in adjacent channels if good_data empty
+	failed = 0    
 	while (good_data.size==0):
 		adj += 1
 		if (c-adj >= 0):
@@ -342,20 +348,20 @@ def template_print_flagstats(flags_all):
 	print(f'Union of flags: {np.mean(flags_all[:,:,0])}% of data flagged')
 
 
-	tot_points = flags_all[:,:,1].size
-	flagged_pts_p1 = np.count_nonzero(flags_all[:,:,0])
-	flagged_pts_p2 = np.count_nonzero(flags_all[:,:,1])
+# 	tot_points = flags_all[:,:,1].size
+# 	flagged_pts_p1 = np.count_nonzero(flags_all[:,:,0])
+# 	flagged_pts_p2 = np.count_nonzero(flags_all[:,:,1])
 
-	#print(f'Pol0: {flagged_pts_p2} datapoints were flagged out of {tot_points}')
-	flagged_percent = (float(flagged_pts_p1)/tot_points)*100
-	print(f'Pol0: {np.mean(flags_all[:,:,0])}% of data outside acceptable ranges')
+# 	#print(f'Pol0: {flagged_pts_p2} datapoints were flagged out of {tot_points}')
+# 	flagged_percent = (float(flagged_pts_p1)/tot_points)*100
+# 	print(f'Pol0: {np.mean(flags_all[:,:,0])}% of data outside acceptable ranges')
 
-	#print(f'Pol1: {flagged_pts_p2} datapoints were flagged out of {tot_points}')
-	flagged_percent = (float(flagged_pts_p2)/tot_points)*100
-	print(f'Pol1: {np.mean(flags_all[:,:,0])}% of data outside acceptable ranges')
+# 	#print(f'Pol1: {flagged_pts_p2} datapoints were flagged out of {tot_points}')
+# 	flagged_percent = (float(flagged_pts_p2)/tot_points)*100
+# 	print(f'Pol1: {np.mean(flags_all[:,:,0])}% of data outside acceptable ranges')
 
-	flags_all[:,:,0][flags_all[:,:,1]==1]=1
-	print(f'Union of flags: {np.mean(flags_all[:,:,0])}% of data flagged')
+# 	flags_all[:,:,0][flags_all[:,:,1]==1]=1
+# 	print(f'Union of flags: {np.mean(flags_all[:,:,0])}% of data flagged')
 
 def template_averager(data,m):
 	step1 = np.reshape(data, (data.shape[0],-1,m))

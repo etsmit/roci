@@ -189,20 +189,24 @@ def SK_thresholds(M, N = 1, d = 1, p = 0.0013499):
 
 def averager(data,m):
 	"""
-	averages data for IQRM
+	average of data
 	"""
-	step1 = np.reshape(data,(data.shape[0],-1,m))
-	step2 = np.nanmean(step1,axis=2)
-	return step2             
+	step1_p0 = np.reshape(data[:,:,0], (data.shape[0],-1,m)) # polarization 1
+	step1_p1 = np.reshape(data[:,:,1], (data.shape[0],-1,m)) # 2
+	step2_p0 = np.expand_dims(np.mean(step1_p0,axis=2),axis=2)
+	step2_p1 = np.expand_dims(np.mean(step1_p1,axis=2),axis=2)
+	return np.concatenate((step2_p0,step2_p1),axis=2)           
                   
 
 def stdever(data,m):
 	"""
 	standard deviation of data
 	"""
-	step1 = np.reshape(data,(data.shape[0],-1,m))
-	step2 = np.nanstd(step1,axis=2)
-	return step2
+	step1_p0 = np.reshape(data[:,:,0], (data.shape[0],-1,m)) # polarization 1
+	step1_p1 = np.reshape(data[:,:,1], (data.shape[0],-1,m)) # 2
+	step2_p0 = np.expand_dims(np.mean(step1_p0,axis=2),axis=2)
+	step2_p1 = np.expand_dims(np.mean(step1_p1,axis=2),axis=2)
+	return np.concatenate((step2_p0,step2_p1),axis=2)    
 
 
 def iqrm_power(data, radius, threshold):
@@ -225,13 +229,27 @@ def iqrm_std(data, radius, threshold, breakdown):
 	"""
 	m = 512 # constant
 	avg_pre = averager(np.abs(data)**2, m)
-	data = stdever(np.abs(data)**2, breakdown) # make it a stdev
+# 	data_pol0 = stdever(np.abs(data[:,:,0])**2, breakdown) # make it a stdev
+# # 	shape=np.expand_dims(shape, axis=2)
+# 	flag_chunk = np.zeros((*data_pol0.shape[:2], 2))
+# 	print('Data shape: {} || block size: {}'.format(flag_chunk.shape,flag_chunk.nbytes))
+    
+	data = stdever(np.abs(data)**2, breakdown)
 	flag_chunk = np.zeros(data.shape)
+	print('Flag shape: {} || block size: {}'.format(flag_chunk.shape,flag_chunk.nbytes))
 	for i in tqdm(range(data.shape[2])): # iterate through polarizations
 		for j in range(data.shape[0]): # iterate through channels
 			flag_chunk[j,:,i] = iqrm.iqrm_mask(data[j,:,i], radius = radius, threshold = threshold)[0]
+            
+            
+            
+            
+# 	for j in range(data_pol0.shape[0]): # iterate through channels
+# 		flag_chunk[j,:,0] = iqrm.iqrm_mask(data_pol0[j,:], radius = radius, threshold = threshold)[0]
+# 	data_pol1 = stdever(np.abs(data[:,:,1])**2, breakdown) # make it a stdev
+# 	for j in range(data_pol1.shape[0]): # iterate through channels
+# 		flag_chunk[j,:,1] = iqrm.iqrm_mask(data_pol1[j,:], radius = radius, threshold = threshold)[0]
 
-#     avg_post = 
 	return flag_chunk, avg_pre
 
 

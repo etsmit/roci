@@ -2,7 +2,7 @@
 mitigateRFI
 
 
-Template for RFI mitigation. Put your own algorithm in. See below for instructions.
+Interquartile Range RFI mitigation. Put your own algorithm in. See below for instructions.
 
 
 Use instructions:
@@ -385,7 +385,7 @@ def mitigateRFI_IQRM(*args):
 
     #save spost results
     np.save(spost_filename,spost_all)
-    print(f'{spost_all.shape} Flags file saved to {spost_filename}')
+    print(f'{spost_all.shape} spost file saved to {spost_filename}')
 
 
     #=================================================

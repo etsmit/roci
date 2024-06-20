@@ -368,7 +368,7 @@ def template_averager(data,m):
 	step2 = np.mean(step1,axis=2)
 	return step2
 
-
+#test
 
 
 
